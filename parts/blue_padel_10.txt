@@ -17,7 +17,7 @@ const defaultState={
     nightPrice60:0,
     nightPrice90:0,
     nightPrice120:0,
-    adminPin:'blue2026',
+    adminPin:'',
     minSellable:90,
     hours:{
       0:{open:'08:00',close:'01:00'},1:{open:'08:00',close:'01:00'},2:{open:'08:00',close:'01:00'},
@@ -1511,7 +1511,7 @@ function loadSettings(){
   $('settingsNightPrice60').value=state.settings.nightPrice60||0;
   $('settingsNightPrice90').value=state.settings.nightPrice90||0;
   $('settingsNightPrice120').value=state.settings.nightPrice120||0;
-  $('settingsAdminPin').value=state.settings.adminPin||'blue2026';
+  $('settingsAdminPin').value=state.settings.adminPin||currentAdminPin||'';
   $('settingsMinSellable').value=String(state.settings.minSellable||90);
   $('hoursSettings').innerHTML=DAYS.map((d,i)=>{const h=state.settings.hours[i];return `<div class="toolbar" style="margin-bottom:8px"><div style="min-width:95px;font-weight:850">${d}</div><input type="time" step="1800" value="${h.open}" data-day="${i}" data-kind="open"><span>→</span><input type="time" step="1800" value="${h.close}" data-day="${i}" data-kind="close"></div>`}).join('');
   document.querySelectorAll('#hoursSettings input').forEach(inp=>inp.addEventListener('change',async e=>{
@@ -1526,7 +1526,7 @@ function loadSettings(){
   }))
 }
 $('saveSettingsBtn').addEventListener('click',async()=>{
-  const newPin=$('settingsAdminPin').value.trim()||currentAdminPin||'blue2026';
+  const newPin=$('settingsAdminPin').value.trim()||currentAdminPin||state.settings.adminPin||'';
   const next={
     clubPhone:$('settingsClubPhone').value.trim()||'+54 9 2645801810',
     paymentAlias:$('settingsPaymentAlias').value.trim()||'bluepadel.sj',
