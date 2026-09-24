@@ -99,6 +99,20 @@ jWkAeyc7w8z7hcZrh34s8rsG1sCV87DSOafNL5PZENxgk1MK23UBJm6qom76ukRONcuNaUDGOmYLBSfd
   text-align:center;
   word-break:break-word;
 }
+.slot.merged .turn-time{
+  display:block;
+  margin-bottom:5px;
+  font-size:13px;
+  line-height:1.1;
+  font-weight:950;
+  color:#071873;
+}
+.slot.merged .turn-owner{
+  display:block;
+  font-size:12px;
+  line-height:1.2;
+  font-weight:900;
+}
 .slot.merged .turn-status{
   display:block;
   margin-top:5px;

@@ -928,7 +928,8 @@ function renderAgenda(){
       h+=`<td class="slot merged ${cls}" rowspan="${span}">
             <div class="turn-name">
               <div>
-                ${it.name||''}
+                <div class="turn-time">${hm(it.start)} - ${hm(it.end)}</div>
+                <div class="turn-owner">${it.name||''}</div>
                 <span class="turn-status badge ${badgeCls}">${label}</span>
               </div>
             </div>
