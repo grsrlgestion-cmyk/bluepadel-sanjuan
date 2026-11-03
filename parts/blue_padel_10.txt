@@ -3,6 +3,9 @@ const defaultState={
   bookings:[],
   fixed:[],
   fixedAttendance:{},
+  payments:{},
+  consumptions:[],
+  products:[],
   settings:{
     clubPhone:'+54 9 2645801810',
     paymentAlias:'bluepadel.sj',
@@ -98,6 +101,9 @@ function normalizeOnlineState(remote){
     bookings:Array.isArray(remote.bookings)?remote.bookings:[],
     fixed:Array.isArray(remote.fixed)?remote.fixed:[],
     fixedAttendance:remote.fixedAttendance||{},
+    payments:remote.payments||{},
+    consumptions:Array.isArray(remote.consumptions)?remote.consumptions:[],
+    products:Array.isArray(remote.products)?remote.products:[],
     settings:{
       ...clone(defaultState).settings,
       ...(remote.settings||{}),
@@ -191,6 +197,9 @@ function loadState(){
       bookings:s.bookings||[],
       fixed:s.fixed||[],
       fixedAttendance:s.fixedAttendance||{},
+      payments:s.payments||{},
+      consumptions:s.consumptions||[],
+      products:s.products||[],
       settings:{...clone(defaultState).settings,...(s.settings||{}),hours:{...clone(defaultState).settings.hours,...((s.settings||{}).hours||{})}}
     };
   }catch(e){return clone(defaultState)}
@@ -1441,16 +1450,44 @@ function updateAllDateHints(){
 }
 
 
+function turnAccountingKey(source,id,date){
+  return \`\${source}|\${id}|\${date}\`;
+}
+function turnPaymentState(source,id,date){
+  return (state.payments||{})[turnAccountingKey(source,id,date)] || {};
+}
+function turnConsumptions(source,id,date){
+  return (state.consumptions||[]).filter(x=>
+    x.source===source && String(x.turnId)===String(id) && x.date===date
+  );
+}
+function consumptionTotal(items){
+  return (items||[]).reduce((sum,x)=>sum+Number(x.total ?? (Number(x.unitPrice||0)*Number(x.quantity||0))),0);
+}
+function consumptionSummaryText(items){
+  if(!items?.length) return '';
+  const grouped={};
+  for(const x of items){
+    const name=x.productName||'Producto';
+    grouped[name]=(grouped[name]||0)+Number(x.quantity||0);
+  }
+  return Object.entries(grouped).map(([name,qty])=>\`\${qty}× \${name}\`).join(' · ');
+}
+
 function revenueEntriesForDate(date){
   const rows=[];
 
-  // Eventuales confirmados.
+  // Eventuales.
   for(const b of state.bookings){
     if(b.date!==date) continue;
     if(b.status==='cancelled') continue;
 
     const duration=Number(b.duration||90);
-    const price=Number(b.amount||0) || priceForDuration(duration,b.start);
+    const baseAmount=Number(b.amount||0) || priceForDuration(duration,b.start);
+    const consumptions=turnConsumptions('booking',b.id,date);
+    const consumptionAmount=consumptionTotal(consumptions);
+    const confirmed=b.status==='confirmed';
+    const paid=confirmed && !!turnPaymentState('booking',b.id,date).paid;
 
     rows.push({
       source:'booking',
@@ -1463,8 +1500,12 @@ function revenueEntriesForDate(date){
       name:b.name||'Turno eventual',
       kind:b.status==='pending'?'pending':'eventual',
       status:b.status,
-      confirmed:b.status==='confirmed',
-      amount:price
+      confirmed,
+      paid,
+      baseAmount,
+      consumptionAmount,
+      consumptions,
+      amount:baseAmount+consumptionAmount
     });
   }
 
@@ -1476,7 +1517,10 @@ function revenueEntriesForDate(date){
     const start=fixedOccurrenceStart(f,date);
     const end=fixedOccurrenceEnd(f,date);
     const duration=minutesBetween(start,end);
-    const price=priceForDuration(duration,start);
+    const baseAmount=priceForDuration(duration,start);
+    const consumptions=turnConsumptions('fixed',f.id,date);
+    const consumptionAmount=consumptionTotal(consumptions);
+    const paid=!!turnPaymentState('fixed',f.id,date).paid;
     const kind=fixedKind(f);
 
     rows.push({
@@ -1491,7 +1535,11 @@ function revenueEntriesForDate(date){
       kind,
       status:'confirmed',
       confirmed:true,
-      amount:price
+      paid,
+      baseAmount,
+      consumptionAmount,
+      consumptions,
+      amount:baseAmount+consumptionAmount
     });
   }
 
@@ -1499,20 +1547,23 @@ function revenueEntriesForDate(date){
 }
 
 function revenueForRange(fromDate,toDate){
-  let total=0,pending=0,turns=0;
+  let total=0,paid=0,pending=0,turns=0,consumptions=0,reservationPending=0;
   let d=fromDate;
   while(d<=toDate){
     for(const r of revenueEntriesForDate(d)){
       if(r.confirmed){
         total+=Number(r.amount||0);
+        consumptions+=Number(r.consumptionAmount||0);
         turns++;
+        if(r.paid) paid+=Number(r.amount||0);
+        else pending+=Number(r.amount||0);
       }else if(r.status==='pending'){
-        pending+=Number(r.amount||0);
+        reservationPending+=Number(r.amount||0);
       }
     }
     d=addDaysISO(d,1);
   }
-  return {total,pending,turns};
+  return {total,paid,pending,turns,consumptions,reservationPending};
 }
 
 function renderRevenue(){
@@ -1531,47 +1582,50 @@ function renderRevenue(){
   $('revenueMonthly').textContent=moneyAR(monthly.total);
   $('revenuePending').textContent=moneyAR(daily.pending);
 
-  $('revenueDailyLabel').textContent=formatDateAR(date);
-  $('revenueWeeklyLabel').textContent=`${formatDateAR(weekStart)} al ${formatDateAR(weekEnd)}`;
-  $('revenueMonthlyLabel').textContent=date.slice(0,7).split('-').reverse().join('/');
+  $('revenueDailyLabel').textContent=\`\${formatDateAR(date)} · Abonado \${moneyAR(daily.paid)} · Consumos \${moneyAR(daily.consumptions)}\`;
+  $('revenueWeeklyLabel').textContent=\`\${formatDateAR(weekStart)} al \${formatDateAR(weekEnd)} · Abonado \${moneyAR(weekly.paid)}\`;
+  $('revenueMonthlyLabel').textContent=\`\${date.slice(0,7).split('-').reverse().join('/')} · Abonado \${moneyAR(monthly.paid)}\`;
 
   const entries=revenueEntriesForDate(date);
 
   // Resumen por cancha.
   const courtRows=COURTS.map(court=>{
-    const rr=entries.filter(r=>r.court===court);
-    const confirmed=rr.filter(r=>r.confirmed);
-    const pending=rr.filter(r=>r.status==='pending');
+    const rr=entries.filter(r=>r.court===court && r.confirmed);
     return {
       court,
-      turns:confirmed.length,
-      amount:confirmed.reduce((a,r)=>a+Number(r.amount||0),0),
-      pending:pending.reduce((a,r)=>a+Number(r.amount||0),0)
+      turns:rr.length,
+      amount:rr.reduce((a,r)=>a+Number(r.amount||0),0),
+      paid:rr.filter(r=>r.paid).reduce((a,r)=>a+Number(r.amount||0),0),
+      pending:rr.filter(r=>!r.paid).reduce((a,r)=>a+Number(r.amount||0),0),
+      consumptions:rr.reduce((a,r)=>a+Number(r.consumptionAmount||0),0)
     };
   });
 
   $('revenueCourtTable').innerHTML=
-    `<thead><tr>
+    \`<thead><tr>
       <th>Cancha</th>
       <th class="num">Turnos</th>
-      <th class="num">Confirmado</th>
+      <th class="num">Total</th>
+      <th class="num">Abonado</th>
       <th class="num">Pendiente</th>
     </tr></thead>
     <tbody>
-      ${courtRows.map(r=>`
+      \${courtRows.map(r=>\`
         <tr>
-          <td>Cancha ${r.court}</td>
-          <td class="num">${r.turns}</td>
-          <td class="num">${moneyAR(r.amount)}</td>
-          <td class="num">${moneyAR(r.pending)}</td>
-        </tr>`).join('')}
+          <td>Cancha \${r.court}\${r.consumptions>0?\`<div class="small">Consumos \${moneyAR(r.consumptions)}</div>\`:''}</td>
+          <td class="num">\${r.turns}</td>
+          <td class="num">\${moneyAR(r.amount)}</td>
+          <td class="num">\${moneyAR(r.paid)}</td>
+          <td class="num">\${moneyAR(r.pending)}</td>
+        </tr>\`).join('')}
       <tr class="revenue-total-row">
         <td>TOTAL</td>
-        <td class="num">${courtRows.reduce((a,r)=>a+r.turns,0)}</td>
-        <td class="num">${moneyAR(courtRows.reduce((a,r)=>a+r.amount,0))}</td>
-        <td class="num">${moneyAR(courtRows.reduce((a,r)=>a+r.pending,0))}</td>
+        <td class="num">\${courtRows.reduce((a,r)=>a+r.turns,0)}</td>
+        <td class="num">\${moneyAR(courtRows.reduce((a,r)=>a+r.amount,0))}</td>
+        <td class="num">\${moneyAR(courtRows.reduce((a,r)=>a+r.paid,0))}</td>
+        <td class="num">\${moneyAR(courtRows.reduce((a,r)=>a+r.pending,0))}</td>
       </tr>
-    </tbody>`;
+    </tbody>\`;
 
   // Detalle diario.
   $('revenueDetailList').innerHTML=entries.map(r=>{
@@ -1580,17 +1634,32 @@ function renderRevenue(){
       r.kind==='fixed'?'FIJO':
       r.kind==='pending'?'EN ESPERA DE PAGO':'EVENTUAL';
 
-    return `<div class="item">
+    const consumptionText=consumptionSummaryText(r.consumptions);
+    const paymentBadge=r.confirmed
+      ? \`<span class="paid-label \${r.paid?'yes':'no'}">\${r.paid?'ABONADO':'PENDIENTE'}</span>\`
+      : '<span class="paid-label no">RESERVA PENDIENTE</span>';
+
+    const actions=r.confirmed
+      ? \`<div class="revenue-actions">
+          <button class="btn \${r.paid?'lime':'primary'}" onclick="window.blueToggleTurnPaid('\${r.source}','\${r.id}','\${r.date}',\${r.paid})">\${r.paid?'ABONADO':'Marcar abonado'}</button>
+          <button class="btn soft" onclick="window.blueOpenConsumption('\${r.source}','\${r.id}','\${r.date}')">+ Consumo</button>
+        </div>\`
+      : '';
+
+    return \`<div class="item revenue-turn">
       <div>
-        <b>${r.name}</b>
-        <div class="meta">Cancha ${r.court} · ${r.start}-${r.end} · ${r.duration} min · ${priceBreakdownText(r.duration,r.start)}</div>
-        <div style="margin-top:5px"><span class="revenue-kind ${r.kind}">${label}</span></div>
+        <b>\${r.name}</b>
+        <div class="meta">Cancha \${r.court} · \${r.start}-\${r.end} · \${r.duration} min · \${priceBreakdownText(r.duration,r.start)}</div>
+        <div style="margin-top:5px"><span class="revenue-kind \${r.kind}">\${label}</span></div>
+        \${consumptionText?\`<div class="consumption-summary"><b>Consumos:</b> \${consumptionText} · \${moneyAR(r.consumptionAmount)}</div>\`:''}
       </div>
-      <div style="text-align:right">
-        <b>${moneyAR(r.amount)}</b>
-        <div class="small">${r.confirmed?'Confirmado':'Pendiente'}</div>
+      <div class="revenue-turn-right">
+        <div class="revenue-turn-total">\${moneyAR(r.amount)}</div>
+        <div class="small">Cancha \${moneyAR(r.baseAmount)}\${r.consumptionAmount>0?\` + consumos \${moneyAR(r.consumptionAmount)}\`:''}</div>
+        \${paymentBadge}
+        \${actions}
       </div>
-    </div>`;
+    </div>\`;
   }).join('') || '<div class="empty">No hay turnos registrados para este día.</div>';
 
   // Comparativo diario dentro del mes.
@@ -1598,35 +1667,130 @@ function renderRevenue(){
   let d=monthStart;
   while(d<=monthEnd){
     const rr=revenueForRange(d,d);
-    if(rr.total>0 || rr.pending>0){
+    if(rr.total>0 || rr.reservationPending>0){
       monthRows.push({date:d,...rr});
     }
     d=addDaysISO(d,1);
   }
 
   $('revenueMonthTable').innerHTML=
-    `<thead><tr>
+    \`<thead><tr>
       <th>Fecha</th>
       <th class="num">Turnos</th>
-      <th class="num">Confirmado</th>
+      <th class="num">Total</th>
+      <th class="num">Abonado</th>
       <th class="num">Pendiente</th>
     </tr></thead>
     <tbody>
-      ${monthRows.map(r=>`
+      \${monthRows.map(r=>\`
         <tr>
-          <td>${formatDateAR(r.date)}</td>
-          <td class="num">${r.turns}</td>
-          <td class="num">${moneyAR(r.total)}</td>
-          <td class="num">${moneyAR(r.pending)}</td>
-        </tr>`).join('')}
+          <td>\${formatDateAR(r.date)}\${r.consumptions>0?\`<div class="small">Consumos \${moneyAR(r.consumptions)}</div>\`:''}</td>
+          <td class="num">\${r.turns}</td>
+          <td class="num">\${moneyAR(r.total)}</td>
+          <td class="num">\${moneyAR(r.paid)}</td>
+          <td class="num">\${moneyAR(r.pending)}</td>
+        </tr>\`).join('')}
       <tr class="revenue-total-row">
         <td>TOTAL MES</td>
-        <td class="num">${monthRows.reduce((a,r)=>a+r.turns,0)}</td>
-        <td class="num">${moneyAR(monthRows.reduce((a,r)=>a+r.total,0))}</td>
-        <td class="num">${moneyAR(monthRows.reduce((a,r)=>a+r.pending,0))}</td>
+        <td class="num">\${monthRows.reduce((a,r)=>a+r.turns,0)}</td>
+        <td class="num">\${moneyAR(monthRows.reduce((a,r)=>a+r.total,0))}</td>
+        <td class="num">\${moneyAR(monthRows.reduce((a,r)=>a+r.paid,0))}</td>
+        <td class="num">\${moneyAR(monthRows.reduce((a,r)=>a+r.pending,0))}</td>
       </tr>
-    </tbody>`;
+    </tbody>\`;
 }
+
+window.blueToggleTurnPaid=async(source,id,date,currentlyPaid)=>{
+  if(currentlyPaid && !confirm('¿Querés volver este turno a PENDIENTE?')) return;
+  try{
+    await adminOnlineAction('turn_payment_set',{source,id,date,paid:!currentlyPaid});
+    await loadAdminOnline();
+    renderRevenue();
+  }catch(err){
+    alert(err.message||'No se pudo actualizar el pago.');
+  }
+};
+
+let consumptionContext=null;
+
+function closeConsumptionModal(){
+  consumptionContext=null;
+  $('consumptionModal')?.classList.add('hidden');
+}
+
+function renderConsumptionExisting(){
+  const box=$('consumptionExisting');
+  if(!box || !consumptionContext) return;
+  const items=turnConsumptions(consumptionContext.source,consumptionContext.id,consumptionContext.date);
+  box.innerHTML=items.length
+    ? \`<div class="small" style="font-weight:900;margin:10px 0 4px">Consumos cargados</div>\`+
+      items.map(x=>\`<div class="consumption-line">
+        <span>\${Number(x.quantity||0)}× \${x.productName}</span>
+        <b>\${moneyAR(Number(x.total ?? (Number(x.unitPrice||0)*Number(x.quantity||0))))}</b>
+        <button class="btn danger" style="padding:6px 9px" onclick="window.blueDeleteConsumption(\${Number(x.id)})">Quitar</button>
+      </div>\`).join('')
+    : '<div class="small" style="padding:12px 0">Todavía no hay consumos cargados en este turno.</div>';
+}
+
+window.blueOpenConsumption=(source,id,date)=>{
+  const entry=revenueEntriesForDate(date).find(r=>r.source===source && String(r.id)===String(id));
+  if(!entry) return;
+  consumptionContext={source,id,date};
+  $('consumptionTurnInfo').textContent=\`\${entry.name} · Cancha \${entry.court} · \${entry.start}-\${entry.end}\`;
+
+  const products=(state.products||[]).filter(p=>p.active);
+  $('consumptionProductSelect').innerHTML=products.length
+    ? products.map(p=>\`<option value="\${p.id}">\${p.name} · \${Number(p.price||0)>0?moneyAR(p.price):'PRECIO SIN DEFINIR'}</option>\`).join('')
+    : '<option value="">No hay productos activos</option>';
+  $('consumptionQty').value='1';
+  renderConsumptionExisting();
+  $('consumptionModal').classList.remove('hidden');
+};
+
+$('consumptionAddBtn')?.addEventListener('click',async()=>{
+  if(!consumptionContext) return;
+  const productId=$('consumptionProductSelect').value;
+  const product=(state.products||[]).find(p=>p.id===productId);
+  const quantity=Math.max(1,Number($('consumptionQty').value||1));
+  if(!productId || !product){
+    alert('Seleccioná un producto.');
+    return;
+  }
+  if(Number(product.price||0)<=0){
+    alert('Primero cargá el precio de este producto en Configuración > Productos y consumos.');
+    return;
+  }
+  try{
+    await adminOnlineAction('turn_consumption_add',{
+      source:consumptionContext.source,
+      id:consumptionContext.id,
+      date:consumptionContext.date,
+      productId,
+      quantity
+    });
+    await loadAdminOnline();
+    renderRevenue();
+    renderConsumptionExisting();
+    $('consumptionQty').value='1';
+  }catch(err){
+    alert(err.message||'No se pudo agregar el consumo.');
+  }
+});
+
+window.blueDeleteConsumption=async consumptionId=>{
+  if(!confirm('¿Quitar este consumo del turno?')) return;
+  try{
+    await adminOnlineAction('turn_consumption_delete',{consumptionId});
+    await loadAdminOnline();
+    renderRevenue();
+    renderConsumptionExisting();
+  }catch(err){
+    alert(err.message||'No se pudo quitar el consumo.');
+  }
+};
+
+$('consumptionCloseBtn')?.addEventListener('click',closeConsumptionModal);
+$('consumptionModal')?.addEventListener('click',e=>{if(e.target===$('consumptionModal'))closeConsumptionModal()});
 
 $('revenueDate').addEventListener('change',()=>{updateAllDateHints();renderRevenue()});
 
@@ -1648,6 +1812,7 @@ function loadSettings(){
   $('settingsAdminPin').value=state.settings.adminPin||currentAdminPin||'';
   $('settingsMinSellable').value=String(state.settings.minSellable||90);
   $('hoursSettings').innerHTML=DAYS.map((d,i)=>{const h=state.settings.hours[i];return `<div class="toolbar" style="margin-bottom:8px"><div style="min-width:95px;font-weight:850">${d}</div><input type="time" step="1800" value="${h.open}" data-day="${i}" data-kind="open"><span>→</span><input type="time" step="1800" value="${h.close}" data-day="${i}" data-kind="close"></div>`}).join('');
+  renderProducts();
   document.querySelectorAll('#hoursSettings input').forEach(inp=>inp.addEventListener('change',async e=>{
     const day=Number(e.target.dataset.day),kind=e.target.dataset.kind;
     state.settings.hours[day][kind]=e.target.value;
@@ -1659,6 +1824,68 @@ function loadSettings(){
     }catch(err){console.error(err)}
   }))
 }
+
+function renderProducts(){
+  const box=$('productList');
+  if(!box) return;
+  const products=[...(state.products||[])].sort((a,b)=>Number(a.sortOrder||0)-Number(b.sortOrder||0)||(a.name||'').localeCompare(b.name||''));
+  box.innerHTML=products.length
+    ? products.map(p=>\`<div class="product-row">
+        <div>
+          <b>\${p.name}</b>
+          <div class="small">\${p.active?'ACTIVO':'INACTIVO'}</div>
+        </div>
+        <input type="number" min="0" step="100" value="\${Number(p.price||0)}" data-product-price="\${p.id}" aria-label="Precio \${p.name}">
+        <button class="btn soft" onclick="window.blueSaveProduct('\${p.id}')">Guardar precio</button>
+        <button class="btn \${p.active?'danger':'lime'}" onclick="window.blueToggleProduct('\${p.id}',\${!!p.active})">\${p.active?'Desactivar':'Activar'}</button>
+      </div>\`).join('')
+    : '<div class="empty">No hay productos cargados.</div>';
+}
+
+window.blueSaveProduct=async id=>{
+  const p=(state.products||[]).find(x=>x.id===id);
+  const input=document.querySelector(\`[data-product-price="\${id}"]\`);
+  if(!p || !input) return;
+  try{
+    await adminOnlineAction('product_upsert',{
+      id:p.id,name:p.name,price:Number(input.value||0),active:p.active,sortOrder:Number(p.sortOrder||100)
+    });
+    await loadAdminOnline();
+    renderProducts();
+    renderRevenue();
+  }catch(err){
+    alert(err.message||'No se pudo guardar el precio.');
+  }
+};
+
+window.blueToggleProduct=async(id,isActive)=>{
+  try{
+    await adminOnlineAction('product_toggle',{id,active:!isActive});
+    await loadAdminOnline();
+    renderProducts();
+  }catch(err){
+    alert(err.message||'No se pudo actualizar el producto.');
+  }
+};
+
+$('addProductBtn')?.addEventListener('click',async()=>{
+  const name=$('settingsProductName').value.trim();
+  const price=Number($('settingsProductPrice').value||0);
+  if(!name){
+    alert('Ingresá el nombre del producto.');
+    return;
+  }
+  try{
+    await adminOnlineAction('product_upsert',{name,price,active:true,sortOrder:100});
+    await loadAdminOnline();
+    $('settingsProductName').value='';
+    $('settingsProductPrice').value='';
+    renderProducts();
+  }catch(err){
+    alert(err.message||'No se pudo agregar el producto.');
+  }
+});
+
 $('saveSettingsBtn').addEventListener('click',async()=>{
   const newPin=$('settingsAdminPin').value.trim()||currentAdminPin||state.settings.adminPin||'';
   const next={
