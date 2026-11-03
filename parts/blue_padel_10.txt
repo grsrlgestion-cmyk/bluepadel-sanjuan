@@ -1205,14 +1205,14 @@ function renderReminders(){
 
 // Abre WhatsApp y registra que el mensaje ya fue enviado.
 window.blueSendReminder=async(kind,id,date)=>{
-  let name='',phone='',start='',court='';
+  let name='',phone='',start='',end='',court='';
   const sentAt=new Date().toISOString();
 
   try{
     if(kind==='fixed'){
       const f=state.fixed.find(x=>x.id===id);
       if(!f || !f.phone) return;
-      name=f.name;phone=f.phone;start=f.start;court=f.court;
+      name=f.name;phone=f.phone;start=f.start;end=f.end;court=f.court;
       const occ=fixedOccurrenceState(id,date);
       await adminOnlineAction('fixed_attendance',{
         id,date,
@@ -1229,10 +1229,12 @@ window.blueSendReminder=async(kind,id,date)=>{
     await loadAdminOnline();
     renderReminders();
 
-    const link=waLink(
-      phone,
-      `Hola ${name}, te escribimos de Blue Padel para confirmar tu turno de hoy a las ${start} en Cancha ${court}. ¿Nos confirmás asistencia?`
-    );
+    const firstName=(name||'').trim().split(/\s+/)[0]||name;
+    const message=kind==='fixed'
+      ? `Hola ${firstName}\nBuen día!\nTe recordamos que hoy tenés turno fijo de ${start} hs a ${end} hs.\nNos vemos!`
+      : `Hola ${name}, te escribimos de Blue Padel para confirmar tu turno de hoy a las ${start} en Cancha ${court}. ¿Nos confirmás asistencia?`;
+
+    const link=waLink(phone,message);
     window.location.href=link;
   }catch(err){
     alert(err.message||'No se pudo registrar el envío.');
