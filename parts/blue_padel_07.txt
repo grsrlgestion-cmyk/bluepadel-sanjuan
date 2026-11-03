@@ -413,6 +413,19 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
         <button id="fixedMovePermanentBtn" class="btn lime">Cambio permanente</button>
         <button id="fixedMoveCancelBtn" class="btn danger">Cancelar</button>
       </div>
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <button id="fixedAnnulBtn" class="btn danger">Anular turno</button>
+        <div id="fixedAnnulOptions" class="hidden" style="margin-top:10px">
+          <div class="notice warn" style="margin:0 0 10px">
+            ¿Cómo querés anular este turno fijo?
+          </div>
+          <div class="actions">
+            <button id="fixedAnnulTodayBtn" class="btn soft">Anular solo por hoy</button>
+            <button id="fixedAnnulPermanentBtn" class="btn danger">Anular permanente</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </main>
