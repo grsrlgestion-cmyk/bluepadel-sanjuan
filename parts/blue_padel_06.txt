@@ -560,6 +560,88 @@ jWkAeyc7w8z7hcZrh34s8rsG1sCV87DSOafNL5PZENxgk1MK23UBJm6qom76ukRONcuNaUDGOmYLBSfd
   }
 }
 
+
+
+/* V31 — COBROS Y CONSUMOS POR TURNO */
+#revenueDetailList .revenue-turn{
+  align-items:flex-start;
+}
+.revenue-turn-right{
+  min-width:210px;
+  text-align:right;
+}
+.revenue-turn-total{
+  font-size:19px;
+  font-weight:900;
+}
+.revenue-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:6px;
+  margin-top:8px;
+}
+.consumption-summary{
+  margin-top:7px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.35;
+}
+.consumption-summary b{
+  color:#102062;
+}
+.paid-label{
+  display:inline-block;
+  margin-top:4px;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+}
+.paid-label.yes{background:#d9f3df;color:#12622e}
+.paid-label.no{background:#ffe3e0;color:#9f2e26}
+.product-manager-grid{
+  display:grid;
+  grid-template-columns:minmax(200px,1fr) minmax(140px,.45fr) auto;
+  gap:10px;
+  align-items:end;
+}
+.product-row{
+  display:grid;
+  grid-template-columns:minmax(160px,1fr) 150px auto auto;
+  gap:8px;
+  align-items:center;
+  padding:9px 0;
+  border-bottom:1px solid var(--line);
+}
+.product-row:last-child{border-bottom:0}
+.product-row input{min-width:0}
+.consumption-existing{
+  max-height:210px;
+  overflow:auto;
+  margin-top:12px;
+  border-top:1px solid var(--line);
+}
+.consumption-existing .consumption-line{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:8px;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+@media(max-width:700px){
+  .revenue-turn-right{
+    width:100%;
+    min-width:0;
+    text-align:left;
+  }
+  .revenue-actions{justify-content:flex-start}
+  .product-manager-grid{grid-template-columns:1fr}
+  .product-row{grid-template-columns:1fr 120px}
+  .product-row .btn{width:100%}
+}
 </style>
 </head>
 <body>
