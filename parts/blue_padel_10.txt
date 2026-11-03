@@ -1041,9 +1041,16 @@ $('adminSavePending').addEventListener('click',()=>adminSaveBooking('pending'));
 $('adminSaveConfirmed').addEventListener('click',()=>adminSaveBooking('confirmed'));
 
 /* FIXED */
+function openFixedForm(){
+  $('fixedFormWrap')?.classList.remove('hidden');
+}
 function clearFixed(){
   $('fixedId').value='';$('fixedName').value='';$('fixedPhone').value='';$('fixedKind').value='fixed';$('fixedFrom').value='';$('fixedTo').value='';$('fixedMsg').innerHTML=''
 }
+$('openFixedFormBtn')?.addEventListener('click',()=>{
+  clearFixed();
+  openFixedForm();
+});
 $('clearFixedBtn').addEventListener('click',clearFixed);
 $('saveFixedBtn').addEventListener('click',async()=>{
   const id=$('fixedId').value||uid(),
@@ -1094,7 +1101,7 @@ function renderFixed(){
 }
 $('fixedFilterDay')?.addEventListener('change',renderFixed);
 $('fixedFilterName')?.addEventListener('input',renderFixed);
-window.blueEditFixed=id=>{const f=state.fixed.find(x=>x.id===id);if(!f)return;$('fixedId').value=f.id;$('fixedName').value=f.name;$('fixedPhone').value=f.phone;$('fixedKind').value=fixedKind(f);$('fixedDay').value=String(f.day);$('fixedCourt').value=String(f.court);$('fixedStart').value=f.start;$('fixedEnd').value=f.end;$('fixedFrom').value=f.from||'';$('fixedTo').value=f.to||'';window.scrollTo({top:0,behavior:'smooth'})};
+window.blueEditFixed=id=>{const f=state.fixed.find(x=>x.id===id);if(!f)return;openFixedForm();$('fixedId').value=f.id;$('fixedName').value=f.name;$('fixedPhone').value=f.phone;$('fixedKind').value=fixedKind(f);$('fixedDay').value=String(f.day);$('fixedCourt').value=String(f.court);$('fixedStart').value=f.start;$('fixedEnd').value=f.end;$('fixedFrom').value=f.from||'';$('fixedTo').value=f.to||'';$('fixedFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'})};
 window.blueToggleFixed=async id=>{
   const f=state.fixed.find(x=>x.id===id);if(!f)return;
   try{
