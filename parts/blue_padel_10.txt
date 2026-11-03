@@ -255,6 +255,14 @@ function fixedOccurrenceCourt(f,date){
   const occ=fixedOccurrenceState(f.id,date);
   return Number(occ.courtOverride || f.court);
 }
+function fixedOccurrenceStart(f,date){
+  const occ=fixedOccurrenceState(f.id,date);
+  return occ.startOverride || f.start;
+}
+function fixedOccurrenceEnd(f,date){
+  const occ=fixedOccurrenceState(f.id,date);
+  return occ.endOverride || f.end;
+}
 function setFixedOccurrenceState(fixedId,date,patch){
   if(!state.fixedAttendance) state.fixedAttendance={};
   const key=fixedOccurrenceKey(fixedId,date);
@@ -271,7 +279,8 @@ function fixedKind(f){
 function intervals(date,court){
   const arr=[];
   state.fixed.filter(f=>fixedApplies(f,date)&&!fixedOccurrenceCancelled(f.id,date)&&fixedOccurrenceCourt(f,date)===Number(court)).forEach(f=>{
-    let s=parseHM(f.start),e=parseHM(f.end);if(e<=s)e+=1440;
+    const start=fixedOccurrenceStart(f,date),end=fixedOccurrenceEnd(f,date);
+    let s=parseHM(start),e=parseHM(end);if(e<=s)e+=1440;
     arr.push({start:s,end:e,type:fixedKind(f),name:f.name,phone:f.phone,id:f.id})
   });
   state.bookings.filter(b=>b.date===date&&Number(b.court)===Number(court)&&b.status!=='cancelled').forEach(b=>{
@@ -867,13 +876,19 @@ window.blueOpenFixedMove=(id,date)=>{
   if(!f) return;
 
   const currentCourt=fixedOccurrenceCourt(f,date);
+  const currentStart=fixedOccurrenceStart(f,date);
+  const currentEnd=fixedOccurrenceEnd(f,date);
   fixedMoveContext={id,date};
 
   $('fixedMoveInfo').textContent=
-    `${f.name} · ${DAYS[f.day]} · ${f.start} - ${f.end} · actualmente Cancha ${currentCourt}`;
+    `${f.name} · ${DAYS[f.day]} · ${currentStart} - ${currentEnd} · actualmente Cancha ${currentCourt}`;
 
   fillSelect($('fixedMoveCourt'),COURTS,c=>'Cancha '+c);
+  fillSelect($('fixedMoveStart'),allClockTimes());
+  fillSelect($('fixedMoveEnd'),allClockTimes());
   $('fixedMoveCourt').value=String(currentCourt);
+  $('fixedMoveStart').value=currentStart;
+  $('fixedMoveEnd').value=currentEnd;
   $('fixedMoveModal').classList.remove('hidden');
 };
 
@@ -885,25 +900,35 @@ function closeFixedMove(){
 async function applyFixedMove(scope){
   if(!fixedMoveContext) return;
   const court=Number($('fixedMoveCourt').value);
+  const start=$('fixedMoveStart').value;
+  const end=$('fixedMoveEnd').value;
+
+  if(!start || !end || start===end){
+    alert('Seleccioná un horario Desde y Hasta válido.');
+    return;
+  }
 
   try{
-    const {data,error}=await sb.rpc('blue_padel_move_fixed',{
+    const {data,error}=await sb.rpc('blue_padel_move_fixed_v2',{
       p_pin:currentAdminPin,
       p_id:fixedMoveContext.id,
       p_date:fixedMoveContext.date,
       p_court:court,
+      p_start:start,
+      p_end:end,
       p_scope:scope
     });
     if(error) throw error;
-    if(!data?.ok) throw new Error(data?.error||'No se pudo cambiar la cancha.');
+    if(!data?.ok) throw new Error(data?.error||'No se pudo cambiar el turno fijo.');
 
     closeFixedMove();
     await loadAdminOnline();
     renderAgenda();
     renderFixed();
     renderReminders();
+    if(!$('playerApp').classList.contains('hidden')) renderAvailability();
   }catch(err){
-    alert(err.message||'No se pudo cambiar la cancha.');
+    alert(err.message||'No se pudo cambiar el turno fijo.');
   }
 }
 
@@ -1009,7 +1034,7 @@ function renderAgenda(){
       }
 
       const moveAttrs=it.type==='fixed'
-        ? ` onclick="window.blueOpenFixedMove('${it.id}','${date}')" title="Turno fijo · click para cambiar de cancha"`
+        ? ` onclick="window.blueOpenFixedMove('${it.id}','${date}')" title="Turno fijo · click para cambiar cancha u horario"`
         : '';
 
       h+=`<td class="slot merged ${cls}" rowspan="${span}"${moveAttrs}>
@@ -1240,7 +1265,8 @@ function renderReminders(){
         name:f.name,
         phone:f.phone,
         date,
-        start:f.start,
+        start:fixedOccurrenceStart(f,date),
+        end:fixedOccurrenceEnd(f,date),
         court:fixedOccurrenceCourt(f,date),
         fixed:true,
         sent:!!occ.sentAt,
@@ -1299,7 +1325,7 @@ window.blueSendReminder=async(kind,id,date)=>{
     if(kind==='fixed'){
       const f=state.fixed.find(x=>x.id===id);
       if(!f || !f.phone) return;
-      name=f.name;phone=f.phone;start=f.start;end=f.end;court=f.court;
+      name=f.name;phone=f.phone;start=fixedOccurrenceStart(f,date);end=fixedOccurrenceEnd(f,date);court=fixedOccurrenceCourt(f,date);
       const occ=fixedOccurrenceState(id,date);
       await adminOnlineAction('fixed_attendance',{
         id,date,
@@ -1447,17 +1473,19 @@ function revenueEntriesForDate(date){
     if(!fixedApplies(f,date)) continue;
     if(fixedOccurrenceCancelled(f.id,date)) continue;
 
-    const duration=minutesBetween(f.start,f.end);
-    const price=priceForDuration(duration,f.start);
+    const start=fixedOccurrenceStart(f,date);
+    const end=fixedOccurrenceEnd(f,date);
+    const duration=minutesBetween(start,end);
+    const price=priceForDuration(duration,start);
     const kind=fixedKind(f);
 
     rows.push({
       source:'fixed',
       id:f.id,
       date,
-      court:Number(f.court),
-      start:f.start,
-      end:f.end,
+      court:fixedOccurrenceCourt(f,date),
+      start,
+      end,
       duration,
       name:f.name||'Turno fijo',
       kind,

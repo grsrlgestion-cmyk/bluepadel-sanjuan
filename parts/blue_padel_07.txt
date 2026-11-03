@@ -349,15 +349,25 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
 
   <div id="fixedMoveModal" class="fixed-move-overlay hidden">
     <div class="fixed-move-card" role="dialog" aria-modal="true" aria-labelledby="fixedMoveTitle">
-      <h3 id="fixedMoveTitle">Cambiar cancha del turno fijo</h3>
+      <h3 id="fixedMoveTitle">Cambiar cancha u horario del turno fijo</h3>
       <p id="fixedMoveInfo" class="move-help"></p>
-      <div class="field">
-        <label>Nueva cancha</label>
-        <select id="fixedMoveCourt"></select>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Nueva cancha</label>
+          <select id="fixedMoveCourt"></select>
+        </div>
+        <div class="field">
+          <label>Desde</label>
+          <select id="fixedMoveStart"></select>
+        </div>
+        <div class="field">
+          <label>Hasta</label>
+          <select id="fixedMoveEnd"></select>
+        </div>
       </div>
       <p class="move-help">
-        <b>Solo por hoy:</b> cambia la cancha únicamente en la fecha seleccionada.<br>
-        <b>Cambio permanente:</b> modifica el turno fijo para las próximas semanas.
+        <b>Solo por hoy:</b> cambia cancha y/o horario únicamente en la fecha seleccionada.<br>
+        <b>Cambio permanente:</b> modifica cancha y/o horario del turno fijo para las próximas semanas.
       </p>
       <div class="actions">
         <button id="fixedMoveTodayBtn" class="btn soft">Solo por hoy</button>
