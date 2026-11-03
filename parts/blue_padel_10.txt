@@ -875,6 +875,7 @@ function renderAdminPanel(id){
   if(id==='adminFixed')renderFixed();
   if(id==='adminReminders')renderReminders();
   if(id==='adminRevenue')renderRevenue();
+  if(id==='adminProducts')renderProducts();
   if(id==='adminSettings')loadSettings()
 }
 
@@ -1861,7 +1862,6 @@ function loadSettings(){
   $('settingsAdminPin').value=state.settings.adminPin||currentAdminPin||'';
   $('settingsMinSellable').value=String(state.settings.minSellable||90);
   $('hoursSettings').innerHTML=DAYS.map((d,i)=>{const h=state.settings.hours[i];return `<div class="toolbar" style="margin-bottom:8px"><div style="min-width:95px;font-weight:850">${d}</div><input type="time" step="1800" value="${h.open}" data-day="${i}" data-kind="open"><span>→</span><input type="time" step="1800" value="${h.close}" data-day="${i}" data-kind="close"></div>`}).join('');
-  renderProducts();
   document.querySelectorAll('#hoursSettings input').forEach(inp=>inp.addEventListener('change',async e=>{
     const day=Number(e.target.dataset.day),kind=e.target.dataset.kind;
     state.settings.hours[day][kind]=e.target.value;
