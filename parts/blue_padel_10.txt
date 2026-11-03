@@ -1082,9 +1082,18 @@ $('saveFixedBtn').addEventListener('click',async()=>{
   }
 });
 function renderFixed(){
-  const arr=[...state.fixed].sort((a,b)=>Number(a.day)-Number(b.day)||parseHM(a.start)-parseHM(b.start));
-  $('fixedList').innerHTML=arr.map(f=>`<div class="item"><div><b>${f.name}</b><div class="meta">${DAYS[f.day]} · Cancha ${f.court} · ${f.start}-${f.end} · ${f.phone ? 'WhatsApp '+f.phone : 'WhatsApp pendiente'}</div></div><div class="actions"><span class="badge ${fixedKind(f)==='professor'?'professor':'fixed'}">${fixedKind(f)==='professor'?'PROFESOR':'FIJO'}</span><span class="badge fixed">${f.active?'ACTIVO':'PAUSADO'}</span><button class="btn soft" onclick="window.blueEditFixed('${f.id}')">Editar</button><button class="btn soft" onclick="window.blueToggleFixed('${f.id}')">${f.active?'Pausar':'Activar'}</button><button class="btn danger" onclick="window.blueDeleteFixed('${f.id}')">Borrar</button></div></div>`).join('')||'<div class="empty">No hay turnos fijos cargados.</div>'
+  const dayFilter=$('fixedFilterDay')?.value ?? '';
+  const nameFilter=($('fixedFilterName')?.value||'').trim().toLocaleUpperCase('es-AR');
+
+  const arr=[...state.fixed]
+    .filter(f=>dayFilter==='' || String(f.day)===dayFilter)
+    .filter(f=>!nameFilter || String(f.name||'').toLocaleUpperCase('es-AR').includes(nameFilter))
+    .sort((a,b)=>Number(a.day)-Number(b.day)||parseHM(a.start)-parseHM(b.start));
+
+  $('fixedList').innerHTML=arr.map(f=>`<div class="item"><div><b>${f.name}</b><div class="meta">${DAYS[f.day]} · Cancha ${f.court} · ${f.start}-${f.end} · ${f.phone ? 'WhatsApp '+f.phone : 'WhatsApp pendiente'}</div></div><div class="actions"><span class="badge ${fixedKind(f)==='professor'?'professor':'fixed'}">${fixedKind(f)==='professor'?'PROFESOR':'FIJO'}</span><span class="badge fixed">${f.active?'ACTIVO':'PAUSADO'}</span><button class="btn soft" onclick="window.blueEditFixed('${f.id}')">Editar</button><button class="btn soft" onclick="window.blueToggleFixed('${f.id}')">${f.active?'Pausar':'Activar'}</button><button class="btn danger" onclick="window.blueDeleteFixed('${f.id}')">Borrar</button></div></div>`).join('')||'<div class="empty">No hay turnos fijos que coincidan con el filtro.</div>'
 }
+$('fixedFilterDay')?.addEventListener('change',renderFixed);
+$('fixedFilterName')?.addEventListener('input',renderFixed);
 window.blueEditFixed=id=>{const f=state.fixed.find(x=>x.id===id);if(!f)return;$('fixedId').value=f.id;$('fixedName').value=f.name;$('fixedPhone').value=f.phone;$('fixedKind').value=fixedKind(f);$('fixedDay').value=String(f.day);$('fixedCourt').value=String(f.court);$('fixedStart').value=f.start;$('fixedEnd').value=f.end;$('fixedFrom').value=f.from||'';$('fixedTo').value=f.to||'';window.scrollTo({top:0,behavior:'smooth'})};
 window.blueToggleFixed=async id=>{
   const f=state.fixed.find(x=>x.id===id);if(!f)return;
