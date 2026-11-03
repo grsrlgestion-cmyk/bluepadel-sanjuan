@@ -117,6 +117,7 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
     <button class="tab" data-admin-tab="adminFixed">Turnos fijos</button>
     <button class="tab" data-admin-tab="adminReminders">Recordatorios</button>
     <button class="tab" data-admin-tab="adminRevenue">Recaudación</button>
+    <button class="tab" data-admin-tab="adminProducts">Productos</button>
     <button class="tab" data-admin-tab="adminSettings">Configuración</button>
   </div>
 
@@ -295,6 +296,35 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
     </div>
   </section>
 
+  <section id="adminProducts" class="panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0 0 4px">Productos y precios</h3>
+          <div class="small">Estos precios se usan cuando cargás consumos en un turno. Podés modificarlos cuando quieras.</div>
+        </div>
+      </div>
+
+      <div class="product-manager-grid" style="margin-top:16px">
+        <div class="field" style="margin:0">
+          <label>Nuevo producto</label>
+          <input id="settingsProductName" placeholder="Ej. COCA, AGUA, GRIP">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Precio</label>
+          <input id="settingsProductPrice" type="number" min="0" step="100" placeholder="$">
+        </div>
+        <button id="addProductBtn" class="btn lime">Agregar producto</button>
+      </div>
+
+      <div class="notice info" style="margin:14px 0 0">
+        Si un producto aparece con precio $0, no podrá cargarse como consumo hasta que le asignes un precio.
+      </div>
+
+      <div id="productList" style="margin-top:14px"></div>
+    </div>
+  </section>
+
   <section id="adminSettings" class="panel">
     <div class="grid">
       <div class="card col6">
@@ -346,22 +376,6 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
       </div>
     </div>
 
-    <div class="card" style="margin-top:14px">
-      <h3 style="margin-top:0">Productos y consumos</h3>
-      <div class="small" style="margin-bottom:12px">Definí acá los productos y precios. Después, en Recaudación, podés cargarlos directamente al turno de cada cancha.</div>
-      <div class="product-manager-grid">
-        <div class="field" style="margin:0">
-          <label>Producto</label>
-          <input id="settingsProductName" placeholder="Ej. COCA, AGUA, GRIP">
-        </div>
-        <div class="field" style="margin:0">
-          <label>Precio</label>
-          <input id="settingsProductPrice" type="number" min="0" step="100" placeholder="$">
-        </div>
-        <button id="addProductBtn" class="btn lime">Agregar producto</button>
-      </div>
-      <div id="productList" style="margin-top:12px"></div>
-    </div>
   </section>
 
   <div id="consumptionModal" class="fixed-move-overlay hidden">
