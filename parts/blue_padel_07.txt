@@ -242,7 +242,7 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
       <div class="toolbar" style="justify-content:space-between;align-items:center">
         <div>
           <h3 style="margin:0 0 4px">Recaudación de canchas</h3>
-          <div class="small">Calculada prorrateando la tarifa de día y noche según los minutos reales que ocupa cada turno.</div>
+          <div class="small">Control de cancha, pagos y consumos por turno. El total incluye cancha + productos cargados.</div>
         </div>
         <div class="field">
           <label>Período de referencia</label>
@@ -269,8 +269,8 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
       </div>
       <div class="card kpi">
         <strong id="revenuePending">$0</strong>
-        <span>Pendiente de confirmación</span>
-        <div class="small">No incluido en la recaudación confirmada</div>
+        <span>Pendiente de cobro</span>
+        <div class="small">Turnos confirmados que todavía no figuran como abonados</div>
       </div>
     </div>
 
@@ -345,7 +345,46 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
         <div id="hoursSettings"></div>
       </div>
     </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin-top:0">Productos y consumos</h3>
+      <div class="small" style="margin-bottom:12px">Definí acá los productos y precios. Después, en Recaudación, podés cargarlos directamente al turno de cada cancha.</div>
+      <div class="product-manager-grid">
+        <div class="field" style="margin:0">
+          <label>Producto</label>
+          <input id="settingsProductName" placeholder="Ej. COCA, AGUA, GRIP">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Precio</label>
+          <input id="settingsProductPrice" type="number" min="0" step="100" placeholder="$">
+        </div>
+        <button id="addProductBtn" class="btn lime">Agregar producto</button>
+      </div>
+      <div id="productList" style="margin-top:12px"></div>
+    </div>
   </section>
+
+  <div id="consumptionModal" class="fixed-move-overlay hidden">
+    <div class="fixed-move-card" role="dialog" aria-modal="true" aria-labelledby="consumptionModalTitle">
+      <h3 id="consumptionModalTitle">Agregar consumo al turno</h3>
+      <p id="consumptionTurnInfo" class="move-help"></p>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Producto</label>
+          <select id="consumptionProductSelect"></select>
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input id="consumptionQty" type="number" min="1" step="1" value="1">
+        </div>
+      </div>
+      <div id="consumptionExisting" class="consumption-existing"></div>
+      <div class="actions" style="margin-top:14px">
+        <button id="consumptionAddBtn" class="btn lime">Agregar al turno</button>
+        <button id="consumptionCloseBtn" class="btn soft">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="fixedMoveModal" class="fixed-move-overlay hidden">
     <div class="fixed-move-card" role="dialog" aria-modal="true" aria-labelledby="fixedMoveTitle">
