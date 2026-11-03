@@ -199,7 +199,7 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
         <div class="actions" style="margin-top:12px"><button id="saveFixedBtn" class="btn lime">Guardar fijo</button><button id="clearFixedBtn" class="btn soft">Limpiar</button></div>
       </div>
       <div class="card col7">
-        <h3 style="margin-top:0">Turnos fijos cargados</h3><div class="notice info">Se precargaron 119 turnos fijos desde tu planilla. Los WhatsApp quedaron pendientes para que los completes.</div>
+        <h3 style="margin-top:0">Turnos fijos cargados</h3>
         <div class="toolbar" style="gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0 14px">
           <div class="field" style="min-width:180px;margin:0">
             <label>Filtrar por día</label>
