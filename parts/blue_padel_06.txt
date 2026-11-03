@@ -120,6 +120,30 @@ jWkAeyc7w8z7hcZrh34s8rsG1sCV87DSOafNL5PZENxgk1MK23UBJm6qom76ukRONcuNaUDGOmYLBSfd
   font-weight:900;
   letter-spacing:.2px;
 }
+.slot.merged.fixed{cursor:pointer}
+.slot.merged.fixed:hover{filter:brightness(.97);box-shadow:inset 0 0 0 2px rgba(7,24,115,.18)}
+.fixed-move-overlay{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  background:rgba(4,16,58,.48);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.fixed-move-overlay.hidden{display:none}
+.fixed-move-card{
+  width:min(520px,100%);
+  background:#fff;
+  border-radius:20px;
+  padding:22px;
+  box-shadow:0 22px 60px rgba(4,16,58,.28);
+}
+.fixed-move-card h3{margin:0 0 8px;color:#071873}
+.fixed-move-card .move-help{font-size:13px;color:var(--muted);line-height:1.45;margin:0 0 14px}
+.fixed-move-card .actions{margin-top:16px}
+
 .item-list{display:grid;gap:8px}
 .item{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .item .meta{font-size:12px;color:var(--muted);margin-top:3px}

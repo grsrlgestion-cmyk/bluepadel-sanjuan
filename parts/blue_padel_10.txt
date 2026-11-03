@@ -251,6 +251,10 @@ function fixedOccurrenceState(fixedId,date){
 function fixedOccurrenceCancelled(fixedId,date){
   return fixedOccurrenceState(fixedId,date).attendance==='no';
 }
+function fixedOccurrenceCourt(f,date){
+  const occ=fixedOccurrenceState(f.id,date);
+  return Number(occ.courtOverride || f.court);
+}
 function setFixedOccurrenceState(fixedId,date,patch){
   if(!state.fixedAttendance) state.fixedAttendance={};
   const key=fixedOccurrenceKey(fixedId,date);
@@ -266,7 +270,7 @@ function fixedKind(f){
 
 function intervals(date,court){
   const arr=[];
-  state.fixed.filter(f=>Number(f.court)===Number(court)&&fixedApplies(f,date)&&!fixedOccurrenceCancelled(f.id,date)).forEach(f=>{
+  state.fixed.filter(f=>fixedApplies(f,date)&&!fixedOccurrenceCancelled(f.id,date)&&fixedOccurrenceCourt(f,date)===Number(court)).forEach(f=>{
     let s=parseHM(f.start),e=parseHM(f.end);if(e<=s)e+=1440;
     arr.push({start:s,end:e,type:fixedKind(f),name:f.name,phone:f.phone,id:f.id})
   });
@@ -856,6 +860,58 @@ function renderAdminPanel(id){
   if(id==='adminSettings')loadSettings()
 }
 
+let fixedMoveContext=null;
+
+window.blueOpenFixedMove=(id,date)=>{
+  const f=state.fixed.find(x=>x.id===id);
+  if(!f) return;
+
+  const currentCourt=fixedOccurrenceCourt(f,date);
+  fixedMoveContext={id,date};
+
+  $('fixedMoveInfo').textContent=
+    `${f.name} · ${DAYS[f.day]} · ${f.start} - ${f.end} · actualmente Cancha ${currentCourt}`;
+
+  fillSelect($('fixedMoveCourt'),COURTS,c=>'Cancha '+c);
+  $('fixedMoveCourt').value=String(currentCourt);
+  $('fixedMoveModal').classList.remove('hidden');
+};
+
+function closeFixedMove(){
+  fixedMoveContext=null;
+  $('fixedMoveModal')?.classList.add('hidden');
+}
+
+async function applyFixedMove(scope){
+  if(!fixedMoveContext) return;
+  const court=Number($('fixedMoveCourt').value);
+
+  try{
+    const {data,error}=await sb.rpc('blue_padel_move_fixed',{
+      p_pin:currentAdminPin,
+      p_id:fixedMoveContext.id,
+      p_date:fixedMoveContext.date,
+      p_court:court,
+      p_scope:scope
+    });
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.error||'No se pudo cambiar la cancha.');
+
+    closeFixedMove();
+    await loadAdminOnline();
+    renderAgenda();
+    renderFixed();
+    renderReminders();
+  }catch(err){
+    alert(err.message||'No se pudo cambiar la cancha.');
+  }
+}
+
+$('fixedMoveTodayBtn')?.addEventListener('click',()=>applyFixedMove('day'));
+$('fixedMovePermanentBtn')?.addEventListener('click',()=>applyFixedMove('permanent'));
+$('fixedMoveCancelBtn')?.addEventListener('click',closeFixedMove);
+$('fixedMoveModal')?.addEventListener('click',e=>{if(e.target===$('fixedMoveModal'))closeFixedMove()});
+
 window.blueBookFromAgenda=(date,court,start)=>{
   if(!dateInsideBookingWindow(date)){
     alert('Los turnos esporádicos solo pueden cargarse desde hoy hasta dentro de 15 días.');
@@ -952,7 +1008,11 @@ function renderAgenda(){
         cls='eventual';label='EVENTUAL';badgeCls='confirmed';
       }
 
-      h+=`<td class="slot merged ${cls}" rowspan="${span}">
+      const moveAttrs=it.type==='fixed'
+        ? ` onclick="window.blueOpenFixedMove('${it.id}','${date}')" title="Turno fijo · click para cambiar de cancha"`
+        : '';
+
+      h+=`<td class="slot merged ${cls}" rowspan="${span}"${moveAttrs}>
             <div class="turn-name">
               <div>
                 <div class="turn-time">${hm(it.start)} - ${hm(it.end)}</div>
@@ -1181,7 +1241,7 @@ function renderReminders(){
         phone:f.phone,
         date,
         start:f.start,
-        court:f.court,
+        court:fixedOccurrenceCourt(f,date),
         fixed:true,
         sent:!!occ.sentAt,
         attendance:occ.attendance||''
