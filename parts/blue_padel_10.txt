@@ -855,6 +855,30 @@ function renderAdminPanel(id){
   if(id==='adminRevenue')renderRevenue();
   if(id==='adminSettings')loadSettings()
 }
+
+window.blueBookFromAgenda=(date,court,start)=>{
+  if(!dateInsideBookingWindow(date)){
+    alert('Los turnos esporádicos solo pueden cargarse desde hoy hasta dentro de 15 días.');
+    return;
+  }
+
+  const tab=document.querySelector('[data-admin-tab="adminNew"]');
+  if(tab) tab.click();
+
+  $('adminBookDate').value=date;
+  $('adminBookCourt').value=String(court);
+  updateAllDateHints();
+  refreshAdminBooking();
+
+  const time=$('adminBookTime');
+  if(time && [...time.options].some(opt=>opt.value===start)){
+    time.value=start;
+  }
+
+  $('adminBookName')?.focus();
+  $('adminNew')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+
 function renderAgenda(){
   updateAllDateHints();
   const date=$('adminDate').value||todayISO(),{o,c}=dayHours(date);
@@ -907,7 +931,10 @@ function renderAgenda(){
 
       const it=byCourt[court][m];
       if(!it){
-        h+='<td class="slot free"></td>';
+        const startHM=hm(m);
+        h+=`<td class="slot free" title="Horario libre · click para agendar"
+              style="cursor:pointer"
+              onclick="window.blueBookFromAgenda('${date}',${court},'${startHM}')"></td>`;
         continue;
       }
 
