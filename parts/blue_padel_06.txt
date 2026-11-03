@@ -492,43 +492,43 @@ jWkAeyc7w8z7hcZrh34s8rsG1sCV87DSOafNL5PZENxgk1MK23UBJm6qom76ukRONcuNaUDGOmYLBSfd
 }
 
 
-/* V29 — MISMO ANCHO, TEXTO Y BOTONES MÁS GRANDES EN TURNOS FIJOS */
+/* V30 — TURNOS FIJOS MÁS COMPACTOS PARA VER MÁS DEL LISTADO */
 #adminFixed #fixedList .item{
-  min-height:122px;
-  padding:18px 22px;
-  gap:20px;
+  min-height:110px;
+  padding:14px 18px;
+  gap:16px;
 }
 
 #adminFixed #fixedList .item > div:first-child b{
-  font-size:21px !important;
-  line-height:1.2;
-  margin-bottom:7px;
+  font-size:19px !important;
+  line-height:1.18;
+  margin-bottom:5px;
 }
 
 #adminFixed #fixedList .item .meta{
-  font-size:15px !important;
-  line-height:1.4;
+  font-size:14px !important;
+  line-height:1.32;
 }
 
 #adminFixed #fixedList .actions{
-  column-gap:10px !important;
-  row-gap:8px !important;
+  column-gap:8px !important;
+  row-gap:6px !important;
 }
 
-/* PROFESOR / FIJO y ACTIVO / PAUSADO más grandes */
+/* PROFESOR / FIJO y ACTIVO / PAUSADO más compactos */
 #adminFixed #fixedList .actions .badge{
-  min-width:86px !important;
-  padding:9px 13px !important;
-  font-size:13px !important;
+  min-width:80px !important;
+  padding:7px 10px !important;
+  font-size:12px !important;
   line-height:1.1 !important;
   font-weight:900 !important;
 }
 
-/* Editar / Pausar / Borrar más grandes */
+/* Editar / Pausar / Borrar más compactos */
 #adminFixed #fixedList .actions .btn{
-  min-width:104px !important;
-  padding:12px 17px !important;
-  font-size:14px !important;
+  min-width:96px !important;
+  padding:10px 14px !important;
+  font-size:13px !important;
   line-height:1.1 !important;
   font-weight:900 !important;
 }
@@ -536,27 +536,27 @@ jWkAeyc7w8z7hcZrh34s8rsG1sCV87DSOafNL5PZENxgk1MK23UBJm6qom76ukRONcuNaUDGOmYLBSfd
 /* Aprovechar el espacio sin cambiar el ancho general de los paneles */
 @media(min-width:1281px){
   #adminFixed #fixedList .actions .btn{
-    min-width:110px !important;
-    padding:13px 19px !important;
-    font-size:15px !important;
+    min-width:100px !important;
+    padding:11px 15px !important;
+    font-size:13px !important;
   }
   #adminFixed #fixedList .actions .badge{
-    min-width:92px !important;
-    padding:10px 15px !important;
-    font-size:14px !important;
+    min-width:84px !important;
+    padding:8px 12px !important;
+    font-size:12px !important;
   }
 }
 
 @media(max-width:1280px){
   #adminFixed #fixedList .actions .btn{
-    min-width:92px !important;
-    padding:10px 14px !important;
-    font-size:13px !important;
+    min-width:88px !important;
+    padding:9px 12px !important;
+    font-size:12px !important;
   }
   #adminFixed #fixedList .actions .badge{
-    min-width:80px !important;
-    padding:8px 11px !important;
-    font-size:12px !important;
+    min-width:76px !important;
+    padding:7px 10px !important;
+    font-size:11px !important;
   }
 }
 
