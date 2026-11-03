@@ -898,11 +898,13 @@ window.blueOpenFixedMove=(id,date)=>{
   $('fixedMoveCourt').value=String(currentCourt);
   $('fixedMoveStart').value=currentStart;
   $('fixedMoveEnd').value=currentEnd;
+  $('fixedAnnulOptions')?.classList.add('hidden');
   $('fixedMoveModal').classList.remove('hidden');
 };
 
 function closeFixedMove(){
   fixedMoveContext=null;
+  $('fixedAnnulOptions')?.classList.add('hidden');
   $('fixedMoveModal')?.classList.add('hidden');
 }
 
@@ -943,6 +945,53 @@ async function applyFixedMove(scope){
 
 $('fixedMoveTodayBtn')?.addEventListener('click',()=>applyFixedMove('day'));
 $('fixedMovePermanentBtn')?.addEventListener('click',()=>applyFixedMove('permanent'));
+
+$('fixedAnnulBtn')?.addEventListener('click',()=>{
+  $('fixedAnnulOptions')?.classList.toggle('hidden');
+});
+
+async function annulFixedTurn(scope){
+  if(!fixedMoveContext) return;
+
+  const ctx={...fixedMoveContext};
+  const f=state.fixed.find(x=>x.id===ctx.id);
+  if(!f) return;
+
+  const when=formatDateAR(ctx.date);
+
+  if(scope==='day'){
+    if(!confirm(`¿Anular el turno de ${f.name} solo por el ${when}? La cancha quedará libre únicamente ese día.`)) return;
+  }else{
+    if(!confirm(`¿Anular permanentemente el turno fijo de ${f.name}? Dejará de aparecer en las próximas semanas.`)) return;
+  }
+
+  try{
+    if(scope==='day'){
+      const occ=fixedOccurrenceState(ctx.id,ctx.date);
+      await adminOnlineAction('fixed_attendance',{
+        id:ctx.id,
+        date:ctx.date,
+        attendance:'no',
+        sentAt:occ.sentAt||''
+      });
+    }else{
+      await adminOnlineAction('fixed_toggle',{id:ctx.id,active:false});
+    }
+
+    closeFixedMove();
+    await loadAdminOnline();
+    renderAgenda();
+    renderFixed();
+    renderReminders();
+    if($('revenueDate')) renderRevenue();
+    if(!$('playerApp').classList.contains('hidden')) renderAvailability();
+  }catch(err){
+    alert(err.message||'No se pudo anular el turno fijo.');
+  }
+}
+
+$('fixedAnnulTodayBtn')?.addEventListener('click',()=>annulFixedTurn('day'));
+$('fixedAnnulPermanentBtn')?.addEventListener('click',()=>annulFixedTurn('permanent'));
 $('fixedMoveCancelBtn')?.addEventListener('click',closeFixedMove);
 $('fixedMoveModal')?.addEventListener('click',e=>{if(e.target===$('fixedMoveModal'))closeFixedMove()});
 
