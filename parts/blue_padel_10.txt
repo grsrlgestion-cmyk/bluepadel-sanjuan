@@ -1080,7 +1080,7 @@ function renderAgenda(){
     }
   }
 
-  let h='<thead><tr><th>Hora</th>'+COURTS.map(x=>`<th>Cancha ${x}</th>`).join('')+'</tr></thead><tbody>';
+  let h='<thead><tr><th>Hora</th>'+COURTS.map(x=>`<th>Cancha ${x}</th>`).join('')+'<th>Hora</th></tr></thead><tbody>';
 
   // Marcamos filas que quedan cubiertas por un rowspan.
   const skip={};
@@ -1133,7 +1133,7 @@ function renderAgenda(){
           </td>`;
     }
 
-    h+='</tr>';
+    h+=`<td class="time">${hm(m)} - ${hm(m+30)}</td></tr>`;
   }
 
   h+='</tbody>';
