@@ -151,7 +151,7 @@ KnvqXEUsFCk5s6WbcfDcgCLAwBOqXxZpVVL+lsa9VMRfYGs48EpheIwrduFwPqGTOE1DpkDqDzEng0BH
       <div class="card col7">
         <h3 style="margin-top:0">Nuevo turno esporádico</h3><div class="notice info">Ventana de reserva móvil: desde hoy hasta 15 días hacia adelante.</div>
         <div class="form-grid">
-          <div class="field"><label>Cliente</label><input id="adminBookName"></div>
+          <div class="field"><label>Cliente</label><input id="adminBookName" list="adminClientOptions" autocomplete="off"><datalist id="adminClientOptions"></datalist></div>
           <div class="field"><label>WhatsApp *</label><input id="adminBookPhone"></div>
           <div class="field"><label>Fecha</label><input id="adminBookDate" type="date"><div id="adminBookDateHint" class="date-hint"></div></div>
           <div class="field"><label>Cancha</label><select id="adminBookCourt"></select></div>
