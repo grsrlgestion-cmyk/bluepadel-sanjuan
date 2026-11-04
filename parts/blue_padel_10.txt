@@ -1087,7 +1087,7 @@ function renderAgenda(){
   COURTS.forEach(court=>skip[court]=0);
 
   for(const m of rowStarts){
-    h+=`<tr><td class="time">${hm(m)}</td>`;
+    h+=`<tr><td class="time">${hm(m)} - ${hm(m+30)}</td>`;
 
     for(const court of COURTS){
       if(skip[court]>0){
