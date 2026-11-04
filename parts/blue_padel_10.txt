@@ -996,6 +996,23 @@ $('fixedAnnulPermanentBtn')?.addEventListener('click',()=>annulFixedTurn('perman
 $('fixedMoveCancelBtn')?.addEventListener('click',closeFixedMove);
 $('fixedMoveModal')?.addEventListener('click',e=>{if(e.target===$('fixedMoveModal'))closeFixedMove()});
 
+function adminBookingDurationForSlot(date,court,start){
+  const current=Number($('adminBookDuration')?.value||90);
+  const choices=[current,90,120,60].filter((v,i,a)=>a.indexOf(v)===i);
+  const s=parseHM(start);
+  const {o,c}=dayHours(date);
+
+  for(const duration of choices){
+    const e=s+duration;
+    if(s<o || e>c) continue;
+    if(overlap(s,e,intervals(date,court))) continue;
+    if(leavesThirtyMinuteGap(date,court,s,e)) continue;
+    if(badGapAfter(date,court,s,e)) continue;
+    return duration;
+  }
+  return null;
+}
+
 window.blueBookFromAgenda=(date,court,start)=>{
   if(!dateInsideBookingWindow(date)){
     alert('Los turnos esporádicos solo pueden cargarse desde hoy hasta dentro de 15 días.');
@@ -1007,12 +1024,21 @@ window.blueBookFromAgenda=(date,court,start)=>{
 
   $('adminBookDate').value=date;
   $('adminBookCourt').value=String(court);
-  updateAllDateHints();
-  refreshAdminBooking();
 
-  const time=$('adminBookTime');
-  if(time && [...time.options].some(opt=>opt.value===start)){
-    time.value=start;
+  const duration=adminBookingDurationForSlot(date,Number(court),start);
+  if(duration) $('adminBookDuration').value=String(duration);
+
+  $('adminBookName').value='';
+  $('adminBookPhone').value='';
+  $('adminBookPhone').dataset.autofilled='';
+  $('adminBookNote').value='';
+  $('adminBookMsg').innerHTML='';
+
+  updateAllDateHints();
+  refreshAdminBooking(start);
+
+  if(!duration){
+    $('adminBookMsg').innerHTML='<div class="notice warn">Ese bloque está libre, pero no permite un turno de 60, 90 o 120 minutos sin generar una superposición o un hueco no vendible.</div>';
   }
 
   $('adminBookName')?.focus();
@@ -1161,12 +1187,97 @@ window.blueCancel=async id=>{
 };
 
 /* ADMIN NEW BOOKING */
-function refreshAdminBooking(){
-  const date=$('adminBookDate').value||todayISO(),court=Number($('adminBookCourt').value||1),dur=Number($('adminBookDuration').value||90),slots=candidates(date,court,dur);
-  $('adminBookTime').innerHTML=slots.map(s=>`<option value="${s.start}">${s.start} - ${s.end}</option>`).join('');
-  $('adminSuggestions').innerHTML=slots.slice(0,8).map((s,i)=>`<button class="btn ${i<3?'lime':'soft'}" onclick="document.getElementById('adminBookTime').value='${s.start}'">${s.start} - ${s.end}${i<3?' · recomendado':''}</button>`).join('')||'<div class="empty">No hay horarios compatibles.</div>'
+function normalizeAdminContactName(value){
+  return String(value||'')
+    .trim()
+    .toLocaleUpperCase('es-AR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
 }
-[$('adminBookDate'),$('adminBookCourt'),$('adminBookDuration')].forEach(el=>el.addEventListener('change',refreshAdminBooking));
+
+function adminKnownContacts(){
+  const contacts=new Map();
+  const add=(name,phone)=>{
+    const cleanName=String(name||'').trim().toLocaleUpperCase('es-AR');
+    if(!cleanName) return;
+    const key=normalizeAdminContactName(cleanName);
+    const cleanPhone=String(phone||'').trim();
+    const current=contacts.get(key);
+    if(!current){
+      contacts.set(key,{name:cleanName,phone:cleanPhone});
+    }else if(!current.phone && cleanPhone){
+      current.phone=cleanPhone;
+    }
+  };
+
+  [...(state.bookings||[])]
+    .sort((a,b)=>String(b.createdAt||b.date||'').localeCompare(String(a.createdAt||a.date||'')))
+    .forEach(b=>add(b.name,b.phone));
+
+  (state.fixed||[]).forEach(f=>add(f.name,f.phone));
+  return contacts;
+}
+
+function refreshAdminContacts(){
+  const list=$('adminClientOptions');
+  if(!list) return;
+  const contacts=[...adminKnownContacts().values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  list.replaceChildren(...contacts.map(contact=>{
+    const option=document.createElement('option');
+    option.value=contact.name;
+    if(contact.phone) option.label=contact.phone;
+    return option;
+  }));
+}
+
+function autofillAdminPhoneFromName(){
+  const name=$('adminBookName');
+  const phone=$('adminBookPhone');
+  if(!name || !phone) return;
+
+  const contact=adminKnownContacts().get(normalizeAdminContactName(name.value));
+  if(contact?.phone){
+    phone.value=contact.phone;
+    phone.dataset.autofilled='1';
+    phone.dataset.contactName=normalizeAdminContactName(contact.name);
+  }else if(phone.dataset.autofilled==='1'){
+    phone.value='';
+    phone.dataset.autofilled='';
+    phone.dataset.contactName='';
+  }
+}
+
+function refreshAdminBooking(preferredStart=''){
+  const date=$('adminBookDate').value||todayISO(),
+        court=Number($('adminBookCourt').value||1),
+        dur=Number($('adminBookDuration').value||90),
+        previous=preferredStart||$('adminBookTime').value,
+        slots=candidates(date,court,dur);
+
+  $('adminBookTime').innerHTML=slots.map(s=>`<option value="${s.start}">${s.start} - ${s.end}</option>`).join('');
+
+  if(previous && [...$('adminBookTime').options].some(opt=>opt.value===previous)){
+    $('adminBookTime').value=previous;
+  }
+
+  $('adminSuggestions').innerHTML=slots.slice(0,8).map((s,i)=>`<button class="btn ${i<3?'lime':'soft'}" onclick="document.getElementById('adminBookTime').value='${s.start}'">${s.start} - ${s.end}${i<3?' · recomendado':''}</button>`).join('')||'<div class="empty">No hay horarios compatibles.</div>';
+  refreshAdminContacts();
+}
+
+[$('adminBookDate'),$('adminBookCourt'),$('adminBookDuration')].forEach(el=>el.addEventListener('change',()=>refreshAdminBooking()));
+
+$('adminBookName')?.addEventListener('input',e=>{
+  const pos=e.target.selectionStart;
+  e.target.value=e.target.value.toLocaleUpperCase('es-AR');
+  try{e.target.setSelectionRange(pos,pos)}catch(err){}
+  autofillAdminPhoneFromName();
+});
+$('adminBookName')?.addEventListener('change',autofillAdminPhoneFromName);
+$('adminBookPhone')?.addEventListener('input',()=>{
+  $('adminBookPhone').dataset.autofilled='';
+  $('adminBookPhone').dataset.contactName='';
+});
 async function adminSaveBooking(status){
   applyBookingWindow();
   const name=$('adminBookName').value.trim(),
